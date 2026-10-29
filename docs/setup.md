@@ -3,6 +3,16 @@
 Run once. 
 Region: ap-southeast-1 (Singapore).
 
+## Every session
+
+To run
+
+```bash
+aws sso login --profile haze
+export AWS_PROFILE=haze
+conda activate haze
+```
+
 ## 1. Secure the AWS account
 
 Root user:
@@ -25,31 +35,32 @@ Daily user (IAM Identity Center):
 
 ## 3. Install tools (macOS, Apple Silicon)
 
-AWS CLI (official installer, the Homebrew version can break):
+For Apple Mac.
+
+Start with the AWS CLI. 
+I tried Homebrew first, but on my macOS version it kept crashing because of a missing library called `libexpat`. 
+The official installer ships with its own Python, so just use that one:
 ```bash
 curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
 sudo installer -pkg AWSCLIV2.pkg -target /
 rm AWSCLIV2.pkg
 ```
 
-Everything else:
+Next, the GitHub CLI, Node.js and AWS CDK. 
+For Python I went with conda, since Homebrew's Python ran into the same `libexpat` problem:
 ```bash
-brew install gh python@3.12
-nvm install --lts && nvm alias default 'lts/*'
-npm install -g aws-cdk
+conda create -n haze python=3.12 -y
+conda activate haze
+which python3
 ```
 
-Check:
+Make sure everything installed properly:
 ```bash
-aws --version && node --version && cdk --version && python3.12 --version
-```
-
-If you use conda, stop it from starting in every terminal:
-```bash
-conda config --set auto_activate_base false   # then open a new terminal
+aws --version && node --version && cdk --version && conda --version
 ```
 
 ## 4. Connect the CLI to AWS
+Used IAM Identity Center. 
 
 ```bash
 aws configure sso
@@ -63,68 +74,29 @@ aws configure sso
 #   Profile name: haze
 ```
 
-Test:
+Sign in using:
 ```bash
 export AWS_PROFILE=haze
-aws sts get-caller-identity   # shows your account ID
+aws sts get-caller-identity          # Account ID
+aws sso login --profile haze          # Login
 ```
 
-Login expires after a while. Run `aws sso login` to log in again.
+## 5. Conda Python environment
 
-## 5. Create the GitHub repo
-
+Use conda's own environment
 ```bash
-mkdir -p ~/Projects && cd ~/Projects
-unzip ~/Downloads/aws-haze-monitoring.zip
-cd aws-haze-monitoring
-git init -b main
-git status                     
-git add . && git commit -m "Design, simulator, tests and docs"
-gh auth login
-gh repo create aws-haze-monitoring --public --source=. --push
-```
-
-## 6. Create the CDK app
-
-```bash
-mkdir infra && cd infra
-cdk init app --language python
-source .venv/bin/activate
+conda activate haze
+cd infra
 pip install -r requirements.txt
-```
-
-Replace `infra/app.py` with:
-```python
-#!/usr/bin/env python3
-import os
-
-import aws_cdk as cdk
-
-from infra.infra_stack import InfraStack
-
-app = cdk.App()
-
-InfraStack(
-    app,
-    "HazeFoundation",
-    env=cdk.Environment(account=os.getenv("CDK_DEFAULT_ACCOUNT"), region="ap-southeast-1"),
-)
-
-# Tag everything so cost can be tracked for this project.
-cdk.Tags.of(app).add("Project", "haze-monitoring")
-
-app.synth()
-```
-
-Deploy:
-```bash
-cdk synth                                       # prints a template, no errors
-cdk bootstrap --tags Project=haze-monitoring    # only once per account and region
-cdk deploy                                      # deploys the empty HazeFoundation stack
-cd .. && git add infra && git commit -m "Add CDK app" && git push
+cdk synth                                       
+cdk bootstrap --tags Project=haze-monitoring    
+cdk deploy                                     
 ```
 
 ## 7. Cost tag (next day)
 
-- Activate the `Project` tag in Billing > Cost allocation tags
-- It only shows up after a tagged resource exists (bootstrap creates one)
+Everything in this project is tagged `Project=haze-monitoring`, which lets me see exactly what it costs.
+
+- Activate the `Project` tag under Billing > Cost allocation tags
+- It only appears once something with the tag exists, and bootstrap takes care of that
+
