@@ -1,0 +1,26 @@
+# Secrets: never commit device certificates or keys
+certs/
+*.pem
+*.key
+*.crt
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# CDK
+cdk.out/
+cdk.context.json.bak
+
+# Node
+node_modules/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
