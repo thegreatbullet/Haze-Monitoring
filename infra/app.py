@@ -2,27 +2,29 @@
 import os
 
 import aws_cdk as cdk
+from cdk_nag import AwsSolutionsChecks
 
+from infra.github_oidc_stack import GitHubOidcStack
 from infra.infra_stack import InfraStack
 
-
 app = cdk.App()
-InfraStack(app, "InfraStack",
-    # If you don't specify 'env', this stack will be environment-agnostic.
-    # Account/Region-dependent features and context lookups will not work,
-    # but a single synthesized template can be deployed anywhere.
 
-    # Uncomment the next line to specialize this stack for the AWS Account
-    # and Region that are implied by the current CLI configuration.
+# Settings come from cdk.json "context", so nothing is hard-coded here.
+region = app.node.try_get_context("region") or "ap-southeast-1"
+project_tag = app.node.try_get_context("project_tag") or "haze-monitoring"
+github_repo = app.node.try_get_context("github_repo")
 
-    #env=cdk.Environment(account=os.getenv('CDK_DEFAULT_ACCOUNT'), region=os.getenv('CDK_DEFAULT_REGION')),
+env = cdk.Environment(account=os.getenv("CDK_DEFAULT_ACCOUNT"), region=region)
 
-    # Uncomment the next line if you know exactly what Account and Region you
-    # want to deploy the stack to. */
+InfraStack(app, "HazeFoundation", env=env)
 
-    #env=cdk.Environment(account='123456789012', region='us-east-1'),
+if github_repo:
+    GitHubOidcStack(app, "HazeGitHubOidc", env=env, github_repo=github_repo)
 
-    # For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html
-    )
+# Tag everything so cost can be tracked for this project.
+cdk.Tags.of(app).add("Project", project_tag)
+
+# Security checks on every synth. Findings must be fixed or suppressed with a reason.
+cdk.Aspects.of(app).add(AwsSolutionsChecks(verbose=True))
 
 app.synth()
