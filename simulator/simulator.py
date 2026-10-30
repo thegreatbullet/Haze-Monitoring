@@ -24,10 +24,10 @@ Examples:
   python simulator.py --rounds 1
 
   # A single faulty sensor (should NOT raise a zone advisory)
-  python simulator.py --fault W-PM25-02=step --interval 1
+  python simulator.py --fault west-PM25-02=step --interval 1
 
   # A real haze event rolling into the West zone (SHOULD raise an advisory)
-  python simulator.py --haze W=high --interval 1
+  python simulator.py --haze west=high --interval 1
 
   # Publish to AWS IoT Core
   python simulator.py --mode mqtt --endpoint xxxx-ats.iot.ap-southeast-1.amazonaws.com
@@ -44,7 +44,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-ZONES = {"N": "North", "E": "East", "W": "West"}
+ZONES = {"north": "North", "east": "East", "west": "West"}
 UNITS_PER_TYPE = 3
 SCHEMA_VERSION = 3
 FAULT_TYPES = ["drift", "step", "spike", "stuck", "offline"]
@@ -201,7 +201,7 @@ def build_batch(zone: str, gateway_seq: int, readings: list[dict]) -> dict:
 
 
 def build_network(zones: list[str]) -> dict[str, list[Sensor]]:
-    """Return sensors grouped by zone, e.g. W-PM25-02."""
+    """Return sensors grouped by zone, e.g. west-PM25-02."""
     return {
         zone: [
             Sensor(f"{zone}-{stype}-{unit:02d}", zone, stype)
@@ -248,7 +248,7 @@ class MqttPublisher:
 
 
 def parse_zones(text: str) -> list[str]:
-    zones = [z.strip().upper() for z in text.split(",") if z.strip()]
+    zones = [z.strip().lower() for z in text.split(",") if z.strip()]
     for zone in zones:
         if zone not in ZONES:
             raise argparse.ArgumentTypeError(f"zone {zone} not in {list(ZONES)}")
@@ -268,11 +268,11 @@ def apply_faults(network: dict[str, list[Sensor]], specs: list[str]) -> None:
 
 
 def parse_haze(specs: list[str], zones: list[str]) -> dict[str, float]:
-    """--haze W=high  ->  {"W": 200.0} (target extra PM2.5 for that zone)."""
+    """--haze west=high  ->  {"west": 200.0} (target extra PM2.5 for that zone)."""
     targets = {}
     for spec in specs:
         zone, _, level = spec.partition("=")
-        zone = zone.upper()
+        zone = zone.lower()
         if zone not in zones:
             sys.exit(f"--haze zone {zone} is not being simulated ({zones})")
         if level not in HAZE_LEVELS:
@@ -292,7 +292,7 @@ def main() -> None:
     parser.add_argument("--mode", choices=["stdout", "mqtt"], default="stdout")
     parser.add_argument("--endpoint", help="AWS IoT Core ATS endpoint (mqtt mode)")
     parser.add_argument("--certs-dir", type=Path, default=Path("certs"))
-    parser.add_argument("--zones", type=parse_zones, default=list(ZONES), help="e.g. N,E,W or W")
+    parser.add_argument("--zones", type=parse_zones, default=list(ZONES), help="e.g. north,east,west or west")
     parser.add_argument("--interval", type=float, default=60.0, help="seconds between rounds")
     parser.add_argument("--rounds", type=int, default=0, help="0 = run forever")
     parser.add_argument("--fault", action="append", default=[], help="SENSOR_ID=fault, repeatable")

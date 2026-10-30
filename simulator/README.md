@@ -18,9 +18,9 @@ Each zone has 4 sensor types, 3 each:
 
 ```bash
 python3 simulator.py --rounds 1                   # Generate one reading for all 12 sensors
-python3 simulator.py --zones W --interval 2       # Generate for West zone only, every 2 seconds
-python3 simulator.py --fault W-PM25-02=step       # One sensor breaks: no advisory expected
-python3 simulator.py --haze W=high --interval 1   # Change West Zone to high
+python3 simulator.py --zones west --interval 2       # Generate for West zone only, every 2 seconds
+python3 simulator.py --fault west-PM25-02=step       # One sensor breaks: no advisory expected
+python3 simulator.py --haze west=high --interval 1   # Change West Zone to high
 ```
 
 Requires Python 3.10 or newer.
@@ -28,10 +28,10 @@ Requires Python 3.10 or newer.
 ## Sensor names and Data Storage
 
 - Sensor ID: `{zone}-{TYPE}-{unit}`, 
-- Example: `W-PM25-02` = 0.2µg/m³ of PM2.5 at West Zone
+- Example: `west-PM25-02` = 0.2µg/m³ of PM2.5 at West Zone
       
 - Each zone gateway sends to its own directory: `haze/{zone}/telemetry`
-- Example: `haze/W/telemetry` = send to West/telemetry
+- Example: `haze/west/telemetry` = send to West/telemetry
 
 ## Message format
 
@@ -41,13 +41,13 @@ It is about 2 KB, so IoT Core bills it as one message (billed per 5 KB).
 ```json
 {
   "schema_version": 3,
-  "gateway_id": "gateway-W",
-  "zone": "W",
+  "gateway_id": "gateway-west",
+  "zone": "west",
   "ts": "2026-10-23T03:20:58.680+00:00",
   "seq": 42,
   "readings": [
     {
-      "sensor_id": "W-PM25-02",
+      "sensor_id": "west-PM25-02",
       "type": "PM25",
       "ts": "2026-10-23T03:20:58.680+00:00",
       "seq": 42,
@@ -83,10 +83,10 @@ Put the certificates here:
 ```
 certs/
   AmazonRootCA1.pem
-  gateway-N/certificate.pem.crt
-  gateway-N/private.pem.key
-  gateway-E/...
-  gateway-W/...
+  gateway-north/certificate.pem.crt
+  gateway-north/private.pem.key
+  gateway-east/...
+  gateway-west/...
 ```
 
 Certificates are secrets. Never commit them. `certs/` is already in `.gitignore`.
