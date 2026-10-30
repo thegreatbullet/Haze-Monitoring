@@ -16,6 +16,8 @@ venv/
 # CDK
 cdk.out/
 cdk.context.json.bak
+.ruff_cache
+.pytest_cache
 
 # Node
 node_modules/

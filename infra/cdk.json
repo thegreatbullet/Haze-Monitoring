@@ -16,6 +16,8 @@
     "region": "ap-southeast-1",
     "project_tag": "haze-monitoring",
     "github_repo": "thegreatbullet/Haze-Monitoring",
+    "github_owner_id": "77235793",
+    "github_repo_id": "1438323940",
     "@aws-cdk-containers/ecs-service-extensions:enableDefaultLogDriver": true,
     "@aws-cdk/aws-apigateway:authorizerChangeDeploymentLogicalId": true,
     "@aws-cdk/aws-apigateway:disableCloudWatchRole": true,

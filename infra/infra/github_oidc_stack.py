@@ -7,6 +7,18 @@ GITHUB_OIDC_URL = "https://token.actions.githubusercontent.com"
 GITHUB_OIDC_HOST = "token.actions.githubusercontent.com"
 
 
+def repo_subject(github_repo: str, owner_id: str | None, repo_id: str | None) -> str:
+    """The repo part of GitHub's OIDC "sub" claim.
+
+    Repos created after 15 July 2026 include immutable owner and repo IDs, e.g.
+    repo:octocat@123/my-repo@456. Older repos use repo:octocat/my-repo.
+    """
+    if owner_id and repo_id:
+        owner, name = github_repo.split("/")
+        return f"repo:{owner}@{owner_id}/{name}@{repo_id}"
+    return f"repo:{github_repo}"
+
+
 class GitHubOidcStack(Stack):
     """Lets GitHub Actions deploy this project with short-lived credentials.
 
@@ -20,10 +32,18 @@ class GitHubOidcStack(Stack):
         construct_id: str,
         *,
         github_repo: str,
+        github_owner_id: str | None = None,
+        github_repo_id: str | None = None,
         branch: str = "main",
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
+
+        subject = repo_subject(
+            github_repo,
+            str(github_owner_id) if github_owner_id else None,
+            str(github_repo_id) if github_repo_id else None,
+        )
 
         provider = iam.CfnOIDCProvider(
             self,
@@ -47,7 +67,7 @@ class GitHubOidcStack(Stack):
                 conditions={
                     "StringEquals": {f"{GITHUB_OIDC_HOST}:aud": "sts.amazonaws.com"},
                     "StringLike": {
-                        f"{GITHUB_OIDC_HOST}:sub": f"repo:{github_repo}:ref:refs/heads/{branch}",
+                        f"{GITHUB_OIDC_HOST}:sub": f"{subject}:ref:refs/heads/{branch}",
                     },
                 },
             ),
@@ -75,3 +95,4 @@ class GitHubOidcStack(Stack):
         )
 
         CfnOutput(self, "DeployRoleArn", value=role.role_arn)
+        CfnOutput(self, "TrustedSubject", value=f"{subject}:ref:refs/heads/{branch}")
